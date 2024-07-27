@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문자배열기</title>
+    <style>
+        body {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        h1, h3 {
+            margin: 10px 0;
+        }
+        form {
+            display: inline-block;
+            text-align: left;
+        }
+        table {
+            border-collapse: collapse;
+            margin: 10px auto;
+            width: auto;
+            table-layout: fixed;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            font-size: 20px;
+            min-width: 50px;
+            height: 30px;
+            overflow: hidden;
+        }
+        .page-number {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .info {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .buttons {
+            margin: 10px 0;
+        }
+    </style>
+    <!-- Include SheetJS library for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>문자 배열기</h1>
+    <h3>협동문 제조기</h3>
+    <h5>출력하고 여러 Page를 순서대로 모아 절삭하고, 절삭된 종이를 순서대로 모으면 입력된 글자 순서대로 배열됩니다.</h5>
+    <h5>권장 사용법은 옵션에따라 [생성]후 맨아래 [엑셀 다운로드]로 받아진 엑셀에서 한 페이지씩 복사해서 hwp, word 표에 붙여넣기 하는 방법입니다. (양면인쇄면 당연히 페이지*2)</h5>
+    <h5>위 방법대로하면 원하는 서식(칸 크기, 폰트 등)에 맞춰 출력하기 편리합니다.</h5>
+    <h5>hwp에서 붙여넣을 때 셀 붙이기 메뉴에서 [덮어쓰기] 선택하시면 됩니다. 붙여넣고 표에 테두리가 사라지는경우 엑셀에서 테두리를 만들고 복사하시면 됩니다.</h5>
+    
+    <form id="configForm">
+        <label for="inputStr">문자 입력:</label><br>
+        <textarea id="inputStr" rows="4" cols="50" oninput="updateCharacterCount()"></textarea><br>
+        
+        <label for="cols">행(가로):</label>
+        <input type="number" id="cols" value="3" min="1"><br>
+
+        <label for="rows">열(세로):</label>
+        <input type="number" id="rows" value="2" min="1"><br>
+        
+        <label><input type="checkbox" id="includeSpecialChars">특문, 문장부호, 이모지 포함</label><br>
+        <label><input type="checkbox" id="includeWhitespace">띄어쓰기 포함</label><br>
+        <label><input type="checkbox" id="doubleSided">양면인쇄 (뒷면에 넘버링)</label><br>
+        
+        <button type="button" onclick="generateArray()">생성</button>
+    </form>
+
+    <div id="characterCount" class="info"></div>
+    <div id="info" class="info"></div>
+    <div id="results"></div>
+    <div class="buttons">
+        <button onclick="copyToClipboard()">복사하기</button>
+        <button onclick="downloadExcel()">엑셀 다운로드</button>
+    </div>
+    
+    <script>
+        function updateCharacterCount() {
+            const inputStr = document.getElementById('inputStr').value;
+            const count = inputStr.length;
+            document.getElementById('characterCount').innerText = `입력된 글자 수: ${count}`;
+        }
+
+        function createDynamic3DArray(inputStr, rows, cols, includeSpecialChars = false, includeWhitespace = false) {
+            function shouldInclude(char) {
+                if (char === '\n' || char === '\r') {
+                    return false;
+                }
+                if (char.trim() === '') {
+                    return includeWhitespace;
+                }
+                if (!includeSpecialChars) {
+                    const code = char.codePointAt(0);
+                    return (
+                        (code >= 0x0041 && code <= 0x005A) || // 영어 대문자
+                        (code >= 0x0061 && code <= 0x007A) || // 영어 소문자
+                        (code >= 0x0030 && code <= 0x0039) || // 숫자
+                        (code >= 0xAC00 && code <= 0xD7AF) || // 한글
+                        (code >= 0x1100 && code <= 0x11FF) || // 한글 자모
+                        (code >= 0x3040 && code <= 0x30FF) || // 일본어
+                        (code >= 0x4E00 && code <= 0x9FFF)    // 한자
+                    );
+                }
+                return true;
+            }
+
+            const filteredStr = Array.from(inputStr).filter(shouldInclude).join('');
+            const length = filteredStr.length;
+            const arrayCapacity = rows * cols;
+            const numArrays = Math.ceil(length / arrayCapacity);
+            
+            const arrays = Array.from({ length: numArrays }, () => 
+                Array.from({ length: rows }, () => Array(cols).fill(' '))
+            );
+
+            for (let idx = 0; idx < length; idx++) {
+                const char = filteredStr[idx];
+                const arrayNumber = idx % numArrays;
+                const flatIndex = Math.floor(idx / numArrays);
+                const row = Math.floor(flatIndex / cols);
+                const col = flatIndex % cols;
+                arrays[arrayNumber][row][col] = char;
+            }
+
+            return { arrays, numArrays, length };
+        }
+
+        function generateArray() {
+            const inputStr = document.getElementById('inputStr').value;
+            const rows = parseInt(document.getElementById('rows').value, 10);
+            const cols = parseInt(document.getElementById('cols').value, 10);
+            const includeSpecialChars = document.getElementById('includeSpecialChars').checked;
+            const includeWhitespace = document.getElementById('includeWhitespace').checked;
+            const doubleSided = document.getElementById('doubleSided').checked;
+
+            const { arrays, numArrays, length } = createDynamic3DArray(inputStr, rows, cols, includeSpecialChars, includeWhitespace);
+            const resultsDiv = document.getElementById('results');
+            const infoDiv = document.getElementById('info');
+            
+            // Update info section with total pages and characters
+            infoDiv.innerHTML = `총 페이지: ${numArrays} 페이지, 총 문자 수: ${length}자`;
+            
+            resultsDiv.innerHTML = ''; // Clear previous results
+
+            // Display page 0 with number grid
+            const tableWrapper = document.createElement('div');
+            const pageNumber = document.createElement('div');
+            pageNumber.className = 'page-number';
+            pageNumber.innerText = 'Page 0 (순서 표시)';
+            tableWrapper.appendChild(pageNumber);
+
+            const table = document.createElement('table');
+            for (let r = 0; r < rows; r++) {
+                const tr = document.createElement('tr');
+                for (let c = 0; c < cols; c++) {
+                    const td = document.createElement('td');
+                    td.innerText = r * cols + c + 1;
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            tableWrapper.appendChild(table);
+            resultsDiv.appendChild(tableWrapper);
+
+            // Display content pages
+            arrays.forEach((array, i) => {
+                // Front page
+                const frontWrapper = document.createElement('div');
+                const frontPageNumber = document.createElement('div');
+                frontPageNumber.className = 'page-number';
+                frontPageNumber.innerText = `Page ${i + 1} [앞]`;
+                frontWrapper.appendChild(frontPageNumber);
+
+                const frontTable = document.createElement('table');
+                array.forEach(row => {
+                    const tr = document.createElement('tr');
+                    row.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.innerText = cell === '' ? ' ' : cell; // Set empty cells to a single space
+                        tr.appendChild(td);
+                    });
+                    frontTable.appendChild(tr);
+                });
+                frontWrapper.appendChild(frontTable);
+                resultsDiv.appendChild(frontWrapper);
+
+                // Back page (if double-sided)
+                if (doubleSided) {
+                    const backWrapper = document.createElement('div');
+                    const backPageNumber = document.createElement('div');
+                    backPageNumber.className = 'page-number';
+                    backPageNumber.innerText = `Page ${i + 1} [뒤]`;
+                    backWrapper.appendChild(backPageNumber);
+
+                    const backTable = document.createElement('table');
+                    let charIndex = i + 1; // Start index for numbering on back page
+                    array.forEach(row => {
+                        const tr = document.createElement('tr');
+                        row.forEach(cell => {
+                            const td = document.createElement('td');
+                            td.innerText = charIndex;
+                            charIndex += numArrays; // Increment by number of pages to get the correct sequence
+                            tr.appendChild(td);
+                        });
+                        backTable.appendChild(tr);
+                    });
+                    backWrapper.appendChild(backTable);
+                    resultsDiv.appendChild(backWrapper);
+                }
+            });
+        }
+
+        function copyToClipboard() {
+            const resultsDiv = document.getElementById('results');
+            const range = document.createRange();
+            range.selectNode(resultsDiv);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('copy');
+            alert('내용이 클립보드에 복사되었습니다.');
+        }
+
+                function downloadExcel() {
+            const resultsDiv = document.getElementById('results');
+            const pages = resultsDiv.querySelectorAll('div.page-number');
+
+            const wb = XLSX.utils.book_new();
+            const allData = [];
+
+            pages.forEach((page, i) => {
+                const pageLabel = page.innerText;
+                const table = page.nextElementSibling;
+                if (table.tagName === 'TABLE') {
+                    // Add a row with the page label
+                    allData.push([pageLabel]);
+
+                    // Extract table data and add it to the allData array
+                    const wsData = XLSX.utils.sheet_to_json(XLSX.utils.table_to_sheet(table), { header: 1 });
+                    allData.push(...wsData);
+
+                    // Add an empty row for separation between pages
+                    allData.push([]);
+                }
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(allData);
+            XLSX.utils.book_append_sheet(wb, ws, 'All Pages');
+            XLSX.writeFile(wb, '문자배열기.xlsx');
+        }
+
+    </script>
+</body>
+</html>
