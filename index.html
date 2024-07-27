@@ -72,7 +72,7 @@
         <button type="button" onclick="generateArray()">생성</button>
 
         <div class="buttons">
-            <button onclick="copyToClipboard()">복사하기</button>
+<!--             <button onclick="copyToClipboard()">복사하기</button> -->
             <button onclick="downloadExcel()">엑셀 다운로드</button>
         </div>
     </form>
@@ -218,16 +218,16 @@
             });
         }
 
-        function copyToClipboard() {
-            const resultsDiv = document.getElementById('results');
-            const range = document.createRange();
-            range.selectNode(resultsDiv);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            document.execCommand('copy');
-            alert('내용이 클립보드에 복사되었습니다.');
-        }
+        // function copyToClipboard() {
+        //     const resultsDiv = document.getElementById('results');
+        //     const range = document.createRange();
+        //     range.selectNode(resultsDiv);
+        //     const selection = window.getSelection();
+        //     selection.removeAllRanges();
+        //     selection.addRange(range);
+        //     document.execCommand('copy');
+        //     alert('내용이 클립보드에 복사되었습니다.');
+        // }
 
                 function downloadExcel() {
             const resultsDiv = document.getElementById('results');
