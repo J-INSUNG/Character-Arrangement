@@ -18,7 +18,7 @@ https://j-insung.github.io/Character-Arrangement/
 
 [설명 및 사용방법]
 
-반드시 [생성] 후 [엑셀 다운로드]
+!반드시 [생성] 후 [엑셀 다운로드]
 
 원하는 문자열 (가사 등)을 입력합니다.
 
