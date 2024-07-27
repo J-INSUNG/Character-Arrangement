@@ -1,4 +1,4 @@
-README.ME
+README.md
 
 https://j-insung.github.io/Character-Arrangement/
 
