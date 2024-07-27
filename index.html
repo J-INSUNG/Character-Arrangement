@@ -73,15 +73,17 @@
         <label><input type="checkbox" id="doubleSided">양면인쇄 (뒷면에 넘버링)</label><br>
         
         <button type="button" onclick="generateArray()">생성</button>
+
+        <div class="buttons">
+            <button onclick="copyToClipboard()">복사하기</button>
+            <button onclick="downloadExcel()">엑셀 다운로드</button>
+        </div>
     </form>
 
     <div id="characterCount" class="info"></div>
     <div id="info" class="info"></div>
     <div id="results"></div>
-    <div class="buttons">
-        <button onclick="copyToClipboard()">복사하기</button>
-        <button onclick="downloadExcel()">엑셀 다운로드</button>
-    </div>
+
     
     <script>
         function updateCharacterCount() {
