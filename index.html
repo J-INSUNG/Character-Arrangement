@@ -82,8 +82,7 @@
     <div id="info" class="info"></div>
     <div id="results"></div>
 
-    
-    <script>
+        <script>
         function updateCharacterCount() {
             const inputStr = document.getElementById('inputStr').value;
             const count = inputStr.length;
@@ -124,8 +123,8 @@
 
             for (let idx = 0; idx < length; idx++) {
                 const char = filteredStr[idx];
-                const arrayNumber = idx % numArrays;
-                const flatIndex = Math.floor(idx / numArrays);
+                const arrayNumber = Math.floor(idx / arrayCapacity);
+                const flatIndex = idx % arrayCapacity;
                 const row = Math.floor(flatIndex / cols);
                 const col = flatIndex % cols;
                 arrays[arrayNumber][row][col] = char;
@@ -147,29 +146,10 @@
             const infoDiv = document.getElementById('info');
             
             // Update info section with total pages and characters
-            infoDiv.innerHTML = `총 페이지: ${numArrays} 페이지, 총 문자 수: ${length}자`;
+            const totalPages = doubleSided ? numArrays * 2 : numArrays;
+            infoDiv.innerHTML = `총 페이지: ${totalPages} 페이지, 총 문자 수: ${length}자`;
             
             resultsDiv.innerHTML = ''; // Clear previous results
-
-            // Display page 0 with number grid
-            const tableWrapper = document.createElement('div');
-            const pageNumber = document.createElement('div');
-            pageNumber.className = 'page-number';
-            pageNumber.innerText = 'Page 0 (순서 표시)';
-            tableWrapper.appendChild(pageNumber);
-
-            const table = document.createElement('table');
-            for (let r = 0; r < rows; r++) {
-                const tr = document.createElement('tr');
-                for (let c = 0; c < cols; c++) {
-                    const td = document.createElement('td');
-                    td.innerText = r * cols + c + 1;
-                    tr.appendChild(td);
-                }
-                table.appendChild(tr);
-            }
-            tableWrapper.appendChild(table);
-            resultsDiv.appendChild(tableWrapper);
 
             // Display content pages
             arrays.forEach((array, i) => {
@@ -177,7 +157,7 @@
                 const frontWrapper = document.createElement('div');
                 const frontPageNumber = document.createElement('div');
                 frontPageNumber.className = 'page-number';
-                frontPageNumber.innerText = `Page ${i + 1} [앞]`;
+                frontPageNumber.innerText = `Page ${doubleSided ? (i * 2 + 1) : (i + 1)} [앞]`;
                 frontWrapper.appendChild(frontPageNumber);
 
                 const frontTable = document.createElement('table');
@@ -198,7 +178,7 @@
                     const backWrapper = document.createElement('div');
                     const backPageNumber = document.createElement('div');
                     backPageNumber.className = 'page-number';
-                    backPageNumber.innerText = `Page ${i + 1} [뒤]`;
+                    backPageNumber.innerText = `Page ${i * 2 + 2} [뒤]`;
                     backWrapper.appendChild(backPageNumber);
 
                     const backTable = document.createElement('table');
@@ -219,18 +199,7 @@
             });
         }
 
-        // function copyToClipboard() {
-        //     const resultsDiv = document.getElementById('results');
-        //     const range = document.createRange();
-        //     range.selectNode(resultsDiv);
-        //     const selection = window.getSelection();
-        //     selection.removeAllRanges();
-        //     selection.addRange(range);
-        //     document.execCommand('copy');
-        //     alert('내용이 클립보드에 복사되었습니다.');
-        // }
-
-                function downloadExcel() {
+        function downloadExcel() {
             const resultsDiv = document.getElementById('results');
             const pages = resultsDiv.querySelectorAll('div.page-number');
 
